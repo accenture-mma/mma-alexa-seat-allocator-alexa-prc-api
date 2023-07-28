@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd  http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <apikit:config name="mma-alexa-seat-allocator-alexa-prc-api-config" api="resource::5836a46c-befa-45b0-b2ab-9f1f9382f7b7:mma-alexa-seat-allocator-alexa-prc-api:1.0.1:raml:zip:mma-alexa-seat-allocator-alexa-prc-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <flow name="mma-alexa-seat-allocator-alexa-prc-api-main">
+        <http:listener config-ref="http-listener-config" path="/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <logger level="INFO" doc:name="Start Logger" doc:id="0f5c463f-1682-4c74-9f29-fb6f8e380209" message='"Entering MMA Alexa Seat Allocator Process API'/>
+		<ee:transform doc:name="Prepare logMessage" doc:id="0fbf9f0e-05c6-4743-a52a-26d7252a7c3a">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="logMessage"><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "START: Inbound HTTP Request",
+	content: {
+		remoteAddress: message.attributes.remoteAddress,
+		method: message.attributes.method,
+		requestPath: message.attributes.requestPath,
+		headers: {
+			client_id: message.attributes.headers.client_id,
+			client_secret: message.attributes.headers.client_secret
+		},
+		queryParams: message.attributes.queryParams
+	}
+}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <apikit:router config-ref="mma-alexa-seat-allocator-alexa-prc-api-config" />
+        <ee:transform doc:name="Update logMessage" doc:id="176936a8-938b-4036-b7a8-ff72f263f515">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="logMessage"><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "END: Outbound HTTP Response",
+	content: {
+		httpStatus: vars.httpStatus
+	}
+}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+    </flow>
+    <flow name="post:\book-hotdesk:application\json:mma-alexa-seat-allocator-alexa-prc-api-config">
+        <flow-ref doc:name="Flow Ref: book-hotdesk-main-flow" doc:id="bc06108c-fdb1-408c-ba7b-54c24d5d48ce" name="book-hotdesk-main-flow" />
+    </flow>
+    <flow name="post:\booking-status:application\json:mma-alexa-seat-allocator-alexa-prc-api-config">
+        <flow-ref doc:name="Flow Ref: booking-status-main-flow" doc:id="a92ee588-fce3-42db-91be-cfe1d6ef7116" name="booking-status-main-flow" />
+    </flow>
+    <flow name="post:\team-bookings:application\json:mma-alexa-seat-allocator-alexa-prc-api-config">
+		<flow-ref doc:name="Flow Ref: get-team-bookings-main-flow" doc:id="298af61d-f936-44e8-85cd-0b9d52f832c5" name="get-team-bookings-main-flow"/>
+    </flow>
+    <flow name="post:\cancel-booking:application\json:mma-alexa-seat-allocator-alexa-prc-api-config">
+		<flow-ref doc:name="Flow Ref: cancel-booking-main-flow" doc:id="c2ee73e7-22da-46c6-a125-c3424550bac7" name="cancel-booking-main-flow"/>
+    </flow>
+</mule>
